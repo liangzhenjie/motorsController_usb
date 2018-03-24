@@ -1,0 +1,174 @@
+﻿#include "motorscontroller.h"
+#include <QDebug>
+#include "innfosproxy.h"
+#include <QTimer>
+
+
+MotorsController::MotorsController(requestCallback callBack):
+    m_requestCallback(callBack)
+{
+    mediator->setRequestCallback(callBack);
+}
+
+void MotorsController::autoRecoginze()
+{
+    mediator->autoRecognize(std::bind(&MotorsController::finishRecognizeCallback,this));
+}
+
+bool MotorsController::hasAvailableMotor() const
+{
+    return getMotorIdArray().size() > 0;
+}
+
+void MotorsController::finishRecognizeCallback()
+{
+    qDebug()<<"finished";
+    QTimer::singleShot(100,[=]{m_requestCallback(0,D_READ_ADDRESS,0);}); //delay to insure all requests have acknowledges
+}
+
+vector<uint8_t> MotorsController::getMotorIdArray() const
+{
+    QList<quint8> motorKeyList = motorDataMgrInstance->getMotorsMap().uniqueKeys();
+    return convertQListToVector(motorKeyList);
+}
+
+void MotorsController::activeMotorsMode(vector<uint8_t> idArray, const MotorData::Motor_Mode nMode)
+{
+    motorDataMgrInstance->activeMotorModeInBatch(convertVectorToQList(idArray),nMode);
+}
+
+void MotorsController::launchAllMotors()
+{
+    QList<quint8> motorKeyList = motorDataMgrInstance->getMotorsMap().uniqueKeys();
+    for(int i=0;i<motorKeyList.size();++i)
+    {
+        motorDataMgrInstance->setMotorDataAttr(motorKeyList[i],MotorData::MOTOR_SWITCH,UserDefine::MOTOR_SWITCH_ON);
+    }
+
+}
+
+void MotorsController::closeALlMotors()
+{
+    QList<quint8> motorKeyList = motorDataMgrInstance->getMotorsMap().uniqueKeys();
+    for(int i=0;i<motorKeyList.size();++i)
+    {
+        motorDataMgrInstance->setMotorDataAttr(motorKeyList[i],MotorData::MOTOR_SWITCH,UserDefine::MOTOR_SWITCH_OFF);
+    }
+}
+
+void MotorsController::switchAutoRefresh(vector<uint8_t> idArray, bool bOpen)
+{
+    for(int i=0;i<idArray.size();++i)
+    {
+        motorDataMgrInstance->switchAutoRequestActual(idArray[i],bOpen);
+    }
+}
+
+void MotorsController::setAutoRefreshInterval(vector<uint8_t> idArray, uint32_t mSec)
+{
+    for(int i=0;i<idArray.size();++i)
+    {
+        motorDataMgrInstance->setAutoRequestInterval(idArray[i],mSec);
+    }
+}
+
+void MotorsController::setPosition(uint8_t id, double pos)
+{
+    motorDataMgrInstance->setMotorDataAttr(id,MotorData::POS_SET,pos);
+}
+
+void MotorsController::setVelocity(uint8_t id, double vel)
+{
+    motorDataMgrInstance->setMotorDataAttr(id,MotorData::VEL_SET,vel);
+}
+
+void MotorsController::setCurrent(uint8_t id, double current)
+{
+    motorDataMgrInstance->setMotorDataAttr(id,MotorData::CUR_IQ_SET,current);
+}
+
+double MotorsController::getPosition(uint8_t id, bool bRefresh) const
+{
+    if(bRefresh)
+        motorDataMgrInstance->regainData(id,MotorData::POS_ACTURAL);
+    return motorDataMgrInstance->getMotorDataAttrValueAsDouble(id,MotorData::POS_ACTURAL);
+}
+
+double MotorsController::getVelocity(uint8_t id, bool bRefresh) const
+{
+    if(bRefresh)
+        motorDataMgrInstance->regainData(id,MotorData::VEL_ACTURAL);
+    return motorDataMgrInstance->getMotorDataAttrValueAsDouble(id,MotorData::VEL_ACTURAL);
+}
+
+double MotorsController::getCurrent(uint8_t id, bool bRefresh) const
+{
+    if(bRefresh)
+        motorDataMgrInstance->regainData(id,MotorData::CUR_ACTURAL);
+    return motorDataMgrInstance->getMotorDataAttrValueAsDouble(id,MotorData::CUR_ACTURAL);
+}
+
+void MotorsController::setMotorAttribute(uint8_t id, MotorData::Motor_Data_Id attrId, double value)
+{
+    motorDataMgrInstance->setMotorDataAttr(id,attrId,value);
+}
+
+double MotorsController::getMotorAttribute(uint8_t id, MotorData::Motor_Data_Id attrId) const
+{
+    return motorDataMgrInstance->getMotorDataAttrValueAsDouble(id,attrId);
+}
+
+void MotorsController::saveAllParams(uint8_t id)
+{
+    motorDataMgrInstance->saveAllParams(id);
+}
+
+void MotorsController::clearHomingInfo(uint8_t id)
+{
+    motorDataMgrInstance->clearHomingInfo(id);
+}
+
+void MotorsController::setHomingOperationMode(uint8_t id, uint8_t nMode)
+{
+    motorDataMgrInstance->setHomingOperationMode(id,nMode);
+}
+
+void MotorsController::openChartChannel(uint8_t id, uint8_t nChannelId)
+{
+    motorDataMgrInstance->openChartChannel(id,nChannelId);
+}
+
+void MotorsController::closeChartChannel(uint8_t id, uint8_t nChannelId)
+{
+    motorDataMgrInstance->closeChartChannel(id,nChannelId);
+}
+
+void MotorsController::switchChartAllChannel(uint8_t id, bool bOn)
+{
+    motorDataMgrInstance->switchChartAllChannel(id,bOn);
+}
+
+void MotorsController::setErrorFunc(std::function<void (uint8_t, uint8_t, string)> func)
+{
+   mediator->setErrorInfoFunc(func);
+}
+
+vector<uint8_t> MotorsController::convertQListToVector(const QList<quint8> &qList) const
+{
+    vector<uint8_t> idVector;
+    for(int i=0;i<qList.size();++i)
+    {
+        idVector.push_back(qList[i]);
+    }
+    return idVector;
+}
+
+QList<quint8> MotorsController::convertVectorToQList(const vector<uint8_t> &cVector) const
+{
+    QList<quint8> qList;
+    for(int i=0;i<cVector.size();++i)
+    {
+        qList.push_back(cVector[i]);
+    }
+    return qList;
+}

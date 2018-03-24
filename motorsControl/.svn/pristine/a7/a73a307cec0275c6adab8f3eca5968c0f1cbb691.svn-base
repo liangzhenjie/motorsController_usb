@@ -1,0 +1,68 @@
+﻿#ifndef MEDIATOR_H
+#define MEDIATOR_H
+#include <QObject>
+#include "motordata.h"
+#include "userdefine.h"
+#include <functional>
+#include <string>
+#define TEST_DEBUG
+#define LOG_DEBUG
+//#define NO_HEART_BEAT
+//#define WARNING_DEBUG
+
+
+const qreal velScale = 6000;
+const qreal curScale = 8.25;
+
+
+#define mediator  Mediator::getInstance()//get instance of Mediator
+#define recognizeCallback std::function <void ()>
+#define requestCallback  std::function<void (uint8_t,uint8_t,double)>
+#define errorInfoFunc std::function<void (uint8_t,uint8_t,std::string)>
+
+class Mediator : public QObject
+{
+    Q_OBJECT
+public:
+    static Mediator * getInstance();
+    static void destroyAllStaticObjects();
+    void autoRecognize(recognizeCallback finishedCallback=nullptr,bool bRetry = false);//auto recognize motor
+    void onCanConnected(quint8 nCommunicationUnitId);
+    void SendRequest(const QByteArray & buf);
+    void Handshake(quint32 nDeviceId,bool bSuccess);
+    void SetCurParam(const int nDeviceID,const QVariant value, const int nProxyId);//set motor param values
+    void SetSucceed(const quint8 nDeviceId, const int nProxyId);//
+    void SetFailed(const int nParam);//设置下位机参数fail
+    //void NullChartPointer();
+
+    void reciveMotorInfo(quint8 communicateUnitId,const quint32 nDeviceMac, const quint8 nDeviceId);
+    void receiveNoDataProxy(const int nDeviceID);
+
+    void playAction(quint32 nMac,MotorData::Motor_Mode mode,qreal value);
+
+    void checkServosStatus();//check servos are on or off
+    void recognizeFinished(QMap<quint8,quint32> motorsInfo);
+    void setRequestCallback(requestCallback pRequestCallback);
+    void setErrorInfoFunc(errorInfoFunc func);
+
+public slots:
+    void response(quint8 nUnitId,const QByteArray buf);
+    void reconnectDevice(quint8 nDeviceId);
+    void errorOccur(quint8 nDeviceId,quint8 errorId, QString errorStr);
+signals:
+    void clearErrorSuccess(const int nDeviceId);
+    void startNewPeriodChart();
+
+    void chartVauleChange(const int nChannelId,qreal values);//only use by chart
+    void deviceDataChange(quint8 nDeviceId,MotorData::Motor_Data_Id Id,QVariant value);
+    void modeChange(quint8 nDeviceId,MotorData::Motor_Mode mode);
+protected:
+    Mediator(QObject * parent=0);
+private:
+    static Mediator *m_pInstance;
+    recognizeCallback m_pRecognizeCallback;
+    requestCallback m_pRequestCallback;
+    errorInfoFunc m_pErrorFunc;
+};
+
+#endif // MEDIATOR_H
