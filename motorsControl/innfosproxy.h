@@ -147,6 +147,11 @@ enum Directives
     D_READ_CALIBRATION_ANGLE=0xa4,
     D_SWITCH_CALIBRATION_VEL=0xa5,
 
+    D_READ_RESERVE_0=0xd0,
+    D_READ_RESERVE_1=0xd1,
+    D_READ_RESERVE_2=0xd2,
+    D_READ_RESERVE_3=0xd3,
+
     D_READ_LAST_STATE=0xb0,//读取上一次状态（是否正常关机）
     D_TMP_COMMAND=0xc1,
     D_CLEAR_ERROR=0xfe,//清理错误

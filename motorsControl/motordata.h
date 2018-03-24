@@ -94,6 +94,10 @@ public:
         MAC_ID,
         MODE_ID,
         ERROR_ID,
+        RESERVE_0,
+        RESERVE_1,
+        RESERVE_2,
+        RESERVE_3,
         DATA_CNT,
         DATA_CHART,//special data,don't need to save
         DATA_INVALID,
